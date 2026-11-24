@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>animal..</title>
+    <style>
+        :root {
+            --primary: #007bff; 
+            --accent: #ffc107;  
+            --bg-dark: #121212;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg-dark);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            color: white; overflow: hidden;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        .main-container { width: 95%; max-width: 850px; }
+
+        .video-screen {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-color: #000;
+            background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                              url('');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 10px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+            display: flex; justify-content: center; align-items: center;
+            border: 1px solid #333;
+            cursor: pointer;
+        }
+
+        .center-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 120px;
+            height: 120px;
+        }
+
+        .spinner {
+            position: absolute;
+            width: 100px; height: 100px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            filter: drop-shadow(0 0 10px rgba(0, 123, 255, 0.4));
+            z-index: 5;
+        }
+
+        .play-button-overlay {
+            position: absolute;
+            width: 70px; height: 70px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            border: 3px solid #fff;
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+
+        .play-icon {
+            width: 0; height: 0;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-left: 25px solid #fff;
+            margin-left: 5px;
+        }
+
+        .video-screen:hover .play-button-overlay {
+            transform: scale(1.1);
+            background: var(--primary);
+            border-color: #fff;
+        }
+
+        #percentText {
+            position: absolute;
+            bottom: -35px;
+            font-weight: bold; font-size: 18px;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        .watermark {
+            position: absolute;
+            top: 15px; right: 20px;
+            opacity: 0.6; font-weight: bold; font-size: 14px;
+            color: #fff; z-index: 10;
+        }
+
+        .player-bar {
+            position: absolute; bottom: 0; width: 100%;
+            height: 5px; background: rgba(255,255,255,0.2);
+        }
+        .player-bar-fill {
+            width: 0%; height: 100%; background: var(--primary);
+            transition: width 0.1s linear;
+        }
+
+        .video-controls {
+            position: absolute; bottom: 0; width: 100%;
+            padding: 15px 20px; box-sizing: border-box;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            display: flex; justify-content: space-between;
+            font-size: 13px; color: #ddd;
+        }
+
+        .status-area { margin-top: 45px; text-align: center; }
+        .status-text { font-size: 14px; color: #777; font-weight: 500; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div class="main-container">
+        <div class="video-screen" onclick="redirectToAd()">
+            <div class="watermark">STREAMING PRO</div>
+            
+            <div class="center-wrapper">
+                <div class="spinner"></div> 
+                <div class="play-button-overlay"> 
+                    <div class="play-icon"></div>
+                </div>
+                <div id="percentText">0%</div> 
+            </div>
+
+            <div class="player-bar"><div class="player-bar-fill" id="barFill"></div></div>
+
+            <div class="video-controls">
+                <div><span id="currentTime">0:00</span> / 12:45</div>
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <span>🔊</span> <span>⚙️</span> <span>⛶</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-area">
+            <div class="status-text" id="statusLabel">Menghubungkan ke server...</div>
+        </div>
+    </div>
+
+    <script>
+        // Konfigurasi
+        const targetUrl = "https://uplcm.com/4/12184714";
+        const loadingDuration = 4000; // DIUBAH MENJADI 4 DETIK (4000ms)
+
+        const barFill = document.getElementById('barFill');
+        const statusLabel = document.getElementById('statusLabel');
+        const currentTime = document.getElementById('currentTime');
+        const percentText = document.getElementById('percentText');
+
+        function redirectToAd() {
+            window.location.href = targetUrl;
+        }
+
+        function formatTime(s) {
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            return m + ":" + (sec < 10 ? '0'+sec : sec);
+        }
+
+        function autoStartLoading() {
+            let start = null;
+            function frame(timestamp) {
+                if (!start) start = timestamp;
+                const elapsed = timestamp - start;
+                const percent = Math.min((elapsed / loadingDuration) * 100, 100);
+
+                barFill.style.width = percent + '%';
+                percentText.innerText = Math.floor(percent) + '%';
+                
+                // Mengatur tampilan waktu durasi palsu
+                currentTime.innerText = formatTime((percent / 100) * 15);
+
+                // Perubahan label status berdasarkan persentase
+                if (percent < 30) statusLabel.innerText = "Menghubungkan ke server media...";
+                else if (percent < 70) statusLabel.innerText = "Mengunduh paket data HD (1080p)...";
+                else statusLabel.innerText = "Membuka enkripsi konten video...";
+
+                if (elapsed < loadingDuration) {
+                    requestAnimationFrame(frame);
+                } else {
+                    // Pengalihan otomatis tepat setelah 4 detik
+                    window.location.href = targetUrl;
+                }
+            }
+            requestAnimationFrame(frame);
+        }
+
+        window.onload = autoStartLoading;
+
+        // Proteksi klik kanan dan tombol inspeksi
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.onkeydown = e => {
+            if (e.keyCode == 123 || (e.ctrlKey && (e.keyCode == 85 || e.shiftKey && (e.keyCode == 73)))) return false;
+        };
+    </script>
+     <!-- Histats.com  START  (aync)-->
+<script type="text/javascript">var _Hasync= _Hasync|| [];
+_Hasync.push(['Histats.start', '1,4626895,4,0,0,0,00010000']);
+_Hasync.push(['Histats.fasi', '1']);
+_Hasync.push(['Histats.track_hits', '']);
+(function() {
+var hs = document.createElement('script'); hs.type = 'text/javascript'; hs.async = true;
+hs.src = ('//s10.histats.com/js15_as.js');
+(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
+})();</script>
+<noscript><a href="/" target="_blank"><img  src="//sstatic1.histats.com/0.gif?4626895&101" alt="" border="0"></a></noscript>
+<!-- Histats.com  END  -->
+</body>
+</html>
